@@ -1,19 +1,17 @@
-name: Terraform Deploy
+name: Terraform Manual Deploy
 
 on:
-   push:
-    branches: [ main ]
- # workflow_dispatch:   # ✅ Manual trigger only
-
+  workflow_dispatch:   # ✅ ONLY manual trigger
 
 jobs:
-  terraform:
+  terraform-plan:
+    name: Terraform Plan (Manual)
     runs-on: ubuntu-latest
 
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: us-east-1 # change if needed
+      AWS_DEFAULT_REGION: us-east-1
 
     steps:
       - name: Checkout
@@ -31,5 +29,39 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      # - name: Terraform Apply
-      #   run: terraform Apply -auto-approve tfplan
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+
+
+  terraform-apply:
+    name: Terraform Apply (Manual Approval)
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+
+    environment: terraform-apply   # 🔒 approval required
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
