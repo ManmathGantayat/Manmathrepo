@@ -55,8 +55,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init (no changes)
+        run: terraform init -input=false
 
       - name: Download plan
         uses: actions/download-artifact@v4
